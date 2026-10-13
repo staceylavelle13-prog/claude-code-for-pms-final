@@ -152,3 +152,19 @@ are current.
   for 1, ask Ravi when his weekly numbers first showed the drop.
 - Ticket 3014 (14 Jul, before 4.2): The Undertow missed a ping out of signal, so phone
   signal is a real factor the fixed ping wait ignores.
+- Code is in 00-rook/code/dispatch-routing. In history.py a missed ping and a turned-down
+  ping both cost -0.12 (taken +0.08), the score never decays (2019 TODO), and intent isn't
+  recorded. Break-even is about 60% taken; a near-perfect score hits 0 after about 8
+  non-yes pings. Ranking only sets order; nobody is removed from the list.
+- Replay of the ping history: the four starved responders had strong history before 12 Aug
+  (replayed scores 0.84-1.0, about 80% taken, turned-down share normal). Their misses came
+  first (burst 12-14 Aug, while scores were still high), then pings fell week by week
+  (about 49, 16, 6, 3). Hypothesis 2 mostly contradicted; 3 partly supported; 1 untested
+  (pings has no answer-time column). Giving turned-down pings no penalty still leaves
+  them at 0.16-0.32, so declines aren't the driver; misses are.
+- Still unexplained: why those four missed about 4x more than everyone else (53-64% vs
+  10-18%). Signal or device is a guess. Next: check what they share in the 12-14 Aug misses.
+- Interviews (4, Sept) vs tickets (147): interviews are loud on "gone before I could answer",
+  dark mode, bigger text; tickets show "quiet / never goes off" is about 39 tickets, 38 after
+  12 Aug, and filter persistence is 16 tickets (13 after 4.2), so not noise. Dot and Kip
+  described quiet weeks but filed no tickets. Draft note to Priya (via Marcus) not yet sent.
