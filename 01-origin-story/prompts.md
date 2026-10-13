@@ -24,6 +24,12 @@ prompt library built from your own questions.
 
 ### 1.
 
+How are the geographic (mountainous, water), climate (winter, ice, heat), environment (urban, rural), population (scattered, dense), and technology (cell service, internet availability) differences accounted for with the dispatch system? Explain at a level a 5th grader can understand.
+
 ### 2.
 
+Please query the database to answer those questions. Can we also look at the history of of calls - is the number of available responders in each region compatible with the population and the types of tags that each responder has?
+
 ### 3.
+
+Not yet, I have one more question. You are providing A LOT of data but I want you to come up with 3-5 hypotheses about what went wrong with the 4.2 release.
