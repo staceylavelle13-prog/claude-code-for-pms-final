@@ -168,3 +168,25 @@ are current.
   dark mode, bigger text; tickets show "quiet / never goes off" is about 39 tickets, 38 after
   12 Aug, and filter persistence is 16 tickets (13 after 4.2), so not noise. Dot and Kip
   described quiet weeks but filed no tickets. Draft note to Priya (via Marcus) not yet sent.
+- Ping wait is visible in pings: gap to the next ping after a miss was about 92s before 12 Aug
+  and 62s after, same for 1st, 2nd and 3rd+ pings. Declines are answered in 6-40s (avg about
+  22s), unchanged after 4.2 and the same for the four, so slow answering doesn't explain their
+  misses (revises my earlier guess). They look like no answer at all, maybe late or no delivery. Untested.
+- Position in the chain: first pings missed 2.7% before, 21.4% after (second pings 0.5% to 9.8%).
+  The four's first pings after 12 Aug were 70% missed, 7.5% taken (40 pings); later pings did better.
+  They were first choice on 28% of callouts before and 9% after. Vesper took 0 of 11 first pings.
+- Recovery: score only moves when someone is pinged, never decays, break-even about 60% taken, so a
+  quiet responder only gets work when everyone above fails. Replay puts Vesper at the 0 floor by 1 Sep
+  (assumes a start near 1.0). history.py keeps scores in an in-memory dict: ask Wen Li if they persist.
+  Options: reset the four, add decay, penalise misses less than declines, guarantee minimum offers.
+- Tickets vs pings agree on timing: first "gone before I could answer" ticket 12 Aug 15:41, the day
+  misses jumped (7 of 25 vs 1 of 19); "quiet" tickets start 17 Aug, peak 26 Aug-1 Sep. Tickets
+  under-report: Vesper and Meteor Mite have none; Halfmoon and Corporal Ashgrove file many "quiet"
+  ones but pings fell only about 20%. filed_by is always the responder's handler. Kip's Gale is fine and
+  Meteor Mite isn't, so it isn't the handler.
+- Other findings: callouts with no taken ping 5.5% to 11.1% (19% week of 19 Aug, about 6% by end Aug);
+  out-of-area pings 17% to 39% of pings and miss about 3x more, but the four miss at home too (53%);
+  no time-of-day or area pattern.
+- Still missing: no phone, device or signal data in the database or wiki, and Ravi's time-to-accept by
+  responder isn't in either (ask him). Pre-4.2 delivery tickets: 3007, 3016, 3034 (older phones), 3040.
+  4.2 also fixed duplicate pushes for re-sent pings; ask engineering what that changed.
