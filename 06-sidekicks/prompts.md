@@ -15,6 +15,51 @@ prompt library built from your own questions.
 
 ### 1.
 
+I want to save a habit as something I can reuse. When I review a brief before it goes any further, here's what I actually check for:
+- It names who owns it
+- It says how we'll know it worked
+- The scope at the end matches the scope at the start
+- It explains the problem before it proposes a fix
+
+I want to save a habit as something I can reuse. When I review a brief before it goes any further, here's what I actually check for:
+- It names who owns it
+
+* It clearly defines the user persona(e) and the problem we are trying to solve
+
+- It says how we'll know it worked
+- The scope at the end matches the scope at the start
+- It explains the problem before it proposes a fix
+
+* Any person could pick up the brief and understand it (i.e. not too technical or specific)
+
+
+Turn that into a skill called review-checklist, so I can point it at any brief and get the same check every time, without me explaining it again.
+
 ### 2.
 
+run it on brief.md but don't change anything in the brief
+
 ### 3.
+
+/review-checklist https://github.com/garrett-cypher/claude-code-for-pms-final/blob/main/05-super-speed/brief.md
+
+### 4.
+
+/review-checklist https://github.com/brenteveleth/claude-code-for-pms-final/blob/main/05-super-speed/brief.md
+
+### 5.
+
+run /review-checklist on https://github.com/brenteveleth/claude-code-for-pms-final/blob/main/05-super-speed/brief.md and post results here in chat
+
+### 6.
+
+@"C:\Users\slavelle\Downloads\brief.md"
+/review-checklist
+
+### 7.
+
+/review-checklist 05-super-speed/brief_b.md
+
+### 8.
+
+Schedule review-checklist to run every Monday morning, and let me know what it finds. Nothing needs to be ready for it to fire today. I'm setting the habit, not waiting on the result.
