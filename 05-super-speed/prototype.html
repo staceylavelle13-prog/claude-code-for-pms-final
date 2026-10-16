@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rook Dispatch: Quiet responder prototype</title>
+<style>
+  :root{
+    --bg:#f3f4f6; --card:#fff; --ink:#1f2937; --mute:#6b7280; --line:#e5e7eb;
+    --brand:#1e3a5f; --amber:#b45309; --amberbg:#fef3c7; --green:#047857; --greenbg:#d1fae5;
+    --red:#b91c1c; --redbg:#fee2e2; --blue:#1d4ed8; --bluebg:#dbeafe; --purple:#7c3aed;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+  header{background:var(--brand);color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center}
+  header b{font-size:16px}
+  header span{font-size:12px;opacity:.85}
+  .banner{background:#fffbeb;border-bottom:1px solid #fde68a;color:#78350f;padding:8px 24px;font-size:12px}
+  .wrap{display:grid;grid-template-columns:1fr 340px;gap:24px;padding:20px 24px;max-width:1200px;margin:0 auto}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);margin:0 0 10px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:14px}
+  .card.quiet{border-left:5px solid var(--amber)}
+  .card.ok{border-left:5px solid var(--green)}
+  .card.back{border-left:5px solid var(--blue)}
+  .card.away{border-left:5px solid #9ca3af}
+  .row{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .name{font-size:16px;font-weight:bold}
+  .tags{color:var(--mute);font-size:12px;margin-top:2px}
+  .pill{display:inline-block;padding:3px 9px;border-radius:12px;font-size:12px;font-weight:bold;white-space:nowrap}
+  .pill.quiet{background:var(--amberbg);color:var(--amber)}
+  .pill.ok{background:var(--greenbg);color:var(--green)}
+  .pill.back{background:var(--bluebg);color:var(--blue)}
+  .pill.away{background:#e5e7eb;color:#374151}
+  .strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0 8px;background:#f9fafb;border:1px solid var(--line);border-radius:6px;padding:10px}
+  .strip small{display:block;color:var(--mute);font-size:11px;margin-bottom:2px}
+  .strip strong{font-size:15px}
+  .dots{display:flex;gap:4px;margin-top:3px}
+  .dot{width:14px;height:14px;border-radius:50%}
+  .dot.t{background:#10b981}.dot.d{background:#f59e0b}.dot.s{background:#ef4444}.dot.n{background:#9ca3af}
+  .legend{font-size:11px;color:var(--mute);margin-top:4px}
+  .says{font-size:13px;margin:6px 0;color:var(--mute)}
+  .tracker{display:flex;gap:4px;margin:10px 0;font-size:12px}
+  .tracker span{flex:1;text-align:center;padding:6px 4px;border-radius:4px;background:#f3f4f6;color:var(--mute)}
+  .tracker span.done{background:var(--greenbg);color:#065f46}
+  .tracker span.cur{background:var(--brand);color:#fff;font-weight:bold}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  button{font:inherit;cursor:pointer;border-radius:6px;padding:8px 12px;border:1px solid var(--brand);background:#fff;color:var(--brand);font-weight:bold}
+  button:hover:not(:disabled){background:#eef2f7}
+  button.primary{background:var(--brand);color:#fff}
+  button.primary:hover:not(:disabled){background:#16304f}
+  button:disabled{opacity:.5;cursor:default}
+  .result{margin-top:10px;padding:9px 11px;border-radius:6px;font-size:13px;display:none}
+  .result.show{display:block}
+  .result.wait{background:#f3f4f6}
+  .result.good{background:var(--greenbg);color:#065f46}
+  .result.bad{background:var(--redbg);color:#7f1d1d}
+  .result.info{background:var(--bluebg);color:#1e3a8a}
+  .confirm{display:none;margin-top:10px;padding:10px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:13px}
+  .confirm.show{display:block}
+  textarea{width:100%;font:inherit;padding:8px;border:1px solid var(--line);border-radius:6px;margin-top:6px}
+  .demo{background:#fff;border:1px dashed #9ca3af;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .demo button{padding:4px 8px;font-size:12px}
+  .link{background:none;border:none;color:var(--brand);text-decoration:underline;padding:0;font-weight:normal;font-size:12px}
+  .badge{background:var(--purple);color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;margin-left:6px}
+  /* timeline */
+  #tl{margin:0;padding:0;list-style:none}
+  #tl li{padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+  #tl li:last-child{border-bottom:none}
+  .tag{display:inline-block;min-width:78px;text-align:center;font-size:11px;font-weight:bold;border-radius:10px;padding:2px 8px;margin-right:8px;color:#fff}
+  .tag.you{background:var(--brand)}.tag.resp{background:var(--purple)}.tag.sys{background:#6b7280}
+  .time{color:var(--mute);font-size:11px;margin-left:6px}
+  .mstatus{color:var(--mute);font-size:11px;margin-left:8px}
+  .mstatus.seen{color:var(--green);font-weight:bold}
+  .replybox{display:none;margin-top:8px}
+  .replybox.show{display:block}
+  #tl li.archived{display:none}
+  #tl.hist li.archived{display:block;opacity:.85}
+  #tl.hist.nochat li.archived.chatty{display:none}
+  #tl li.summary{background:var(--greenbg);padding:10px;border-radius:6px;border-bottom:none;margin-bottom:6px}
+  #tl li.audit .keep{color:var(--mute);font-size:11px;margin-left:6px}
+  #tl .actions{margin-top:6px}
+  #tl .actions button{padding:4px 10px;font-size:12px}
+  /* phone */
+  .phone{width:300px;margin:0 auto;background:#111827;border-radius:34px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+  .screen{background:#f9fafb;border-radius:24px;min-height:680px;padding:16px 12px 74px;position:relative;overflow:hidden}
+  .status{display:flex;justify-content:space-between;font-size:11px;color:#6b7280;margin-bottom:10px}
+  .pstatus{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:12px;font-size:12px}
+  .pstatus .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+  .pstatus .msg{margin-top:6px;font-size:13px}
+  .notice{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,.08);animation:pop .35s}
+  .notice b{display:block;margin-bottom:3px}
+  .notice.alert{border-left:4px solid var(--amber)}
+  .notice.good{border-left:4px solid var(--blue)}
+  .notice.test{border-left:4px solid var(--brand)}
+  .notice button{margin-top:6px;width:100%;font-size:13px}
+  .empty{color:#9ca3af;text-align:center;margin-top:30px;font-size:12px;padding:0 20px}
+  @keyframes pop{from{transform:translateY(-8px);opacity:0}to{transform:none;opacity:1}}
+  @keyframes buzz{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+  .buzz{animation:buzz .5s}
+  .nosig{background:#fee2e2;color:#7f1d1d;border-radius:8px;padding:6px 10px;font-size:11px;margin-bottom:10px;display:none}
+  .nosig.show{display:block}
+  .pbar{position:absolute;left:12px;right:12px;bottom:14px;display:flex;gap:6px}
+  .pbar button{flex:1;padding:8px 4px;font-size:12px}
+  .sheet{display:none;position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:20px 20px 24px 24px;padding:14px 12px;box-shadow:0 -4px 14px rgba(0,0,0,.2);font-size:13px;z-index:5}
+  .sheet.show{display:block;animation:pop .25s}
+  .chips{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+  .chip{text-align:left;font-weight:normal;font-size:12px;padding:7px 10px;border-radius:8px}
+  .chip.sel{background:var(--brand);color:#fff}
+</style>
+</head>
+<body>
+
+<header>
+  <b>Rook Dispatch · Handler console</b>
+  <span>Signed in as Kip · Coverage view</span>
+</header>
+<div class="banner">
+  <b>Prototype.</b> A mock-up of the Quiet Responders brief. All names and numbers are sample data; nothing here is connected to Dispatch. Try <b>Check connection</b>, or tap things on the phone.
+</div>
+
+<div class="wrap">
+  <main>
+    <div class="demo">
+      <b>Demo controls</b> (not part of the product)
+      <label><input type="checkbox" id="signal" checked> Meteor Mite's phone has signal</label>
+      <button id="simBack">Simulate: 3 pings taken</button>
+      <button class="link" id="reset">Reset demo</button>
+    </div>
+
+    <h2>Your responders</h2>
+
+    <section class="card quiet" id="mmCard">
+      <div class="row">
+        <div>
+          <div class="name">Meteor Mite</div>
+          <div class="tags">flight · cold-weather · Eastgate</div>
+        </div>
+        <span class="pill quiet" id="mmPill">Quiet</span>
+      </div>
+
+      <div class="strip">
+        <div><small>Pings this week</small><strong id="mmWeek">2</strong> <span style="color:var(--mute)">(usual 12)</span></div>
+        <div><small>Last taken</small><strong id="mmLast">11 days ago</strong></div>
+        <div>
+          <small>Last 6 pings</small>
+          <div class="dots" id="mmDots"></div>
+        </div>
+      </div>
+      <div class="legend"><span style="color:#10b981">●</span> taken · <span style="color:#f59e0b">●</span> turned down · <span style="color:#ef4444">●</span> no answer, opened · <span style="color:#9ca3af">●</span> no answer, never opened</div>
+      <div class="says" id="mmSays">Responder says: nothing yet about the missed pings.</div>
+
+      <div class="tracker" id="tracker"></div>
+
+      <div class="actions">
+        <button class="primary" id="btnCheck">Check connection</button>
+        <button id="btnFresh">Request a fresh start</button>
+        <button id="btnMsg">Message responder</button>
+        <button id="btnEsc" style="display:none">Send to support</button>
+      </div>
+
+      <div class="result" id="checkResult"></div>
+
+      <div class="confirm" id="freshConfirm">
+        <b>Request a fresh start for Meteor Mite?</b><br>
+        Their ranking resets to neutral and they're guaranteed an offer on the next qualifying, non-urgent callout within 7 days. Recorded in the routing-override audit log under your name.
+        <div class="actions">
+          <button class="primary" id="freshYes">Yes, reset</button>
+          <button id="freshNo">Cancel</button>
+        </div>
+      </div>
+
+      <div class="confirm" id="compose" style="background:#f9fafb;border-color:var(--line)">
+        <b>Message Meteor Mite</b>
+        <textarea id="msgText" rows="3">Hey, you've been quiet lately. Is your phone OK? Let me know and I can run a test.</textarea>
+        <div class="actions"><button class="primary" id="msgSend">Send</button><button id="msgCancel">Cancel</button></div>
+      </div>
+
+      <div class="confirm" id="escConfirm">
+        <b>Send to support?</b><br>
+        Support (Nadia's team) gets Meteor Mite's handle, the last 6 pings, both failed connection tests and this conversation. No identity details are shared.
+        <div class="actions">
+          <button class="primary" id="escYes">Send</button>
+          <button id="escNo">Cancel</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card ok">
+      <div class="row">
+        <div>
+          <div class="name">The Gale</div>
+          <div class="tags">aquatic · crowd-management · Northgate</div>
+        </div>
+        <span class="pill ok">Healthy</span>
+      </div>
+      <div class="strip">
+        <div><small>Pings this week</small><strong>71</strong> <span style="color:var(--mute)">(usual 70)</span></div>
+        <div><small>Last taken</small><strong>14 min ago</strong></div>
+        <div>
+          <small>Last 6 pings</small>
+          <div class="dots"><span class="dot t"></span><span class="dot t"></span><span class="dot d"></span><span class="dot t"></span><span class="dot t"></span><span class="dot t"></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 style="margin-bottom:6px">Meteor Mite: conversation and activity <span class="badge" id="badge" style="display:none">0</span></h2>
+      <ul id="tl"></ul>
+    </section>
+  </main>
+
+  <aside>
+    <h2 style="text-align:center">Meteor Mite's phone</h2>
+    <div class="phone" id="phone">
+      <div class="screen">
+        <div class="status"><span>Rook</span><span id="sig">Signal ●●●●</span></div>
+        <div class="nosig" id="nosig">No signal. Messages can't reach this phone.</div>
+
+        <div class="pstatus">
+          <div class="top"><b>Your status</b><span class="pill quiet" id="pPill">Quiet</span></div>
+          <div id="pWeek" style="color:var(--mute)">Pings this week: 2 (usual 12)</div>
+          <div class="msg" id="pMsg"></div>
+        </div>
+
+        <div id="feed"></div>
+
+        <div class="pbar">
+          <button id="pTest">Test my phone</button>
+          <button class="primary" id="pContact">Contact Kip</button>
+          <button id="pAway">I'll be away</button>
+        </div>
+
+        <div class="sheet" id="pcompose">
+          <b>Message Kip</b>
+          <div class="chips" id="chips">
+            <button class="chip" data-r="trouble">I have a phone problem</button>
+            <button class="chip" data-r="other">Something else</button>
+          </div>
+          <textarea id="pText" rows="3" placeholder="Add a note"></textarea>
+          <div class="actions"><button class="primary" id="pSend">Send</button><button id="pCancel">Cancel</button></div>
+        </div>
+
+        <div class="sheet" id="paway">
+          <b>I'll be away until…</b>
+          <div class="chips" id="awayChips">
+            <button class="chip" data-u="tonight">Tonight</button>
+            <button class="chip" data-u="tomorrow">Tomorrow</button>
+            <button class="chip" data-u="Friday">Friday</button>
+            <button class="chip" data-u="next week">Next week</button>
+          </div>
+          <div class="actions"><button id="awayCancel">Cancel</button></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){return document.getElementById(id)};
+  var esc = function(s){return String(s).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]})};
+  var now = function(){return new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})};
+  var hasSignal = function(){return $('signal').checked};
+
+  // ---------- state ----------
+  var STEPS=['Flagged','Being looked at','Fix applied','Back to normal'];
+  var RANK={open:0,looking:1,fixed:2,back:3};
+  var st='open', away=null, awayPrev=null, failCount=0, escalated=false, unread=0;
+  var dots=['t','n','d','s','n','s'];
+  var reports={saw:0,notseen:0,unavail:0};
+  var toPhone=[];      // handler messages waiting for signal
+  var fromPhone=[];    // responder messages waiting for signal
+  var missedQ=['Flight callout · Eastgate · 22 min ago','Cold-weather callout · Eastgate · yesterday'];
+  var testTimer=null;
+  var tested=false, freshDone=false, msgCount=0, epoch=0;
+
+  var PHONE_MSG={
+    open:"We've noticed you've been quiet. Kip has been told.",
+    looking:"Kip is looking into it.",
+    fixed:"Kip restarted your rotation. A few callouts are on their way.",
+    back:"You're back to normal."
+  };
+
+  // ---------- render shared status ----------
+  function render(){
+    var card=$('mmCard'), pill=$('mmPill'), pp=$('pPill'), cls, label;
+    if(away){ cls='away'; label='Away until '+away; }
+    else if(st==='back'){ cls='ok'; label='Healthy'; }
+    else if(st==='fixed'){ cls='back'; label='Re-entry · offer within 7 days'; }
+    else { cls='quiet'; label='Quiet'; }
+    card.className='card '+(cls==='ok'?'ok':cls);
+    pill.className='pill '+(cls==='ok'?'ok':cls); pill.textContent=label;
+    pp.className='pill '+(cls==='ok'?'ok':cls); pp.textContent=away?'Away':(st==='back'?'Healthy':(st==='fixed'?'Re-entry':'Quiet'));
+    $('pMsg').textContent = away ? ('You\'re set as away until '+away+'. No pings until then.') : PHONE_MSG[st];
+    var tr=$('tracker'); tr.style.display = away||st==='back' ? 'none' : 'flex';
+    tr.innerHTML=STEPS.map(function(s,i){
+      var k = i<RANK[st] ? 'done' : (i===RANK[st] ? 'cur' : '');
+      return '<span class="'+k+'">'+(i<RANK[st]?'✓ ':'')+s+'</span>';
+    }).join('');
+    $('mmDots').innerHTML=dots.map(function(d){return '<span class="dot '+d+'"></span>'}).join('');
+    $('pAway').textContent = away ? 'I\'m back' : 'I\'ll be away';
+    $('btnEsc').style.display = (failCount>=2 && !escalated) ? 'inline-block' : 'none';
+  }
+  function advance(to){ if(RANK[to]>RANK[st]) st=to; render(); }
+
+  // ---------- timeline ----------
+  function tl(who, html, opts){
+    opts=opts||{};
+    var li=document.createElement('li');
+    if(opts.chatty) li.className='chatty';
+    if(opts.audit) li.className='audit';
+    var tag = who==='you'?['you','Kip']:(who==='resp'?['resp','Meteor Mite']:['sys','System']);
+    li.innerHTML='<span class="tag '+tag[0]+'">'+tag[1]+'</span>'+html+'<span class="time">'+now()+'</span>'+
+      (opts.status?'<span class="mstatus">'+opts.status+'</span>':'');
+    $('tl').insertBefore(li,$('tl').firstChild);
+    return li;
+  }
+  function setStatus(li,text){
+    var s=li.querySelector('.mstatus'); if(!s) return;
+    s.textContent=text; s.className='mstatus'+(text==='Seen'?' seen':'');
+  }
+  function updateBadge(){
+    $('badge').style.display = unread>0?'inline-block':'none';
+    $('badge').textContent = unread+' awaiting your reply';
+  }
+  function updateSays(){
+    var p=[];
+    if(reports.saw) p.push(reports.saw+' saw the ping but ran out of time');
+    if(reports.notseen) p.push(reports.notseen+' never saw it');
+    if(reports.unavail) p.push(reports.unavail+' were unavailable');
+    $('mmSays').innerHTML='Responder says: '+(p.length?'<b style="color:var(--ink)">'+p.join(', ')+'</b>.':'nothing yet about the missed pings.');
+  }
+
+  // ---------- phone feed ----------
+  function emptyCheck(){
+    if(!$('feed').children.length) $('feed').innerHTML='<div class="empty">No new notifications.</div>';
+  }
+  function dismiss(n,delay){
+    setTimeout(function(){
+      n.style.transition='opacity .3s'; n.style.opacity='0';
+      setTimeout(function(){ n.remove(); emptyCheck(); },300);
+    },delay);
+  }
+  function notify(cls,title,body,buttons){
+    var e=document.querySelector('#feed .empty'); if(e) e.remove();
+    var n=document.createElement('div'); n.className='notice '+cls.split(' ')[0];
+    n.innerHTML='<b>'+title+'</b>'+body;
+    var list=buttons||[];
+    list.forEach(function(wb){
+      var b=document.createElement('button'); b.textContent=wb.label;
+      b.setAttribute('data-k',wb.keep?'1':'0');
+      b.onclick=function(){
+        if(!wb.keep){
+          n.querySelectorAll('button[data-k="0"]').forEach(function(x){x.disabled=true});
+          b.textContent=wb.done||'Sent ✓';
+          dismiss(n,500);
+        }
+        wb.onClick();
+      };
+      n.appendChild(b);
+    });
+    $('feed').insertBefore(n,$('feed').firstChild);
+    var p=$('phone'); p.classList.remove('buzz'); void p.offsetWidth; p.classList.add('buzz');
+    if(cls==='good' && !list.length) dismiss(n,3500);
+    return n;
+  }
+
+  // ---------- responder -> handler ----------
+  var LABEL={fine:'Phone is fine',trouble:'Phone problem',other:'Message'};
+  var TEXT={fine:'My phone is working. I was away from it when pings came in.',trouble:'I think my phone isn\'t getting pings.',other:''};
+
+  function sendToHandler(kind,note){
+    var m={kind:kind,note:note};
+    if(!hasSignal()){
+      fromPhone.push(m);
+      notify('alert','Message queued','No signal. Your message to Kip sends as soon as you\'re back online.');
+      return;
+    }
+    deliverToConsole(m,false);
+    notify('good','Sent to Kip ✓','Kip will reply here.');
+  }
+  function deliverToConsole(m,wasOffline){
+    var text=m.note||TEXT[m.kind];
+    var li=tl('resp','<b>'+LABEL[m.kind]+':</b> '+esc(text)+(wasOffline?' <i>(sent while offline)</i>':'')+
+      '<div class="actions"><button data-a="reply">Reply</button>'+
+      (m.kind!=='fine'?'<button data-a="check">Run connection check</button>':'')+'</div>'+
+      '<div class="replybox"><textarea rows="2" placeholder="Write a reply"></textarea><div class="actions"><button class="primary" data-a="send">Send reply</button></div></div>');
+    unread++; msgCount++; updateBadge();
+    var answered=false;
+    li.querySelector('[data-a=reply]').onclick=function(){ li.querySelector('.replybox').classList.toggle('show'); };
+    var chk=li.querySelector('[data-a=check]');
+    if(chk) chk.onclick=function(){ if(!$('btnCheck').disabled) $('btnCheck').click(); $('mmCard').scrollIntoView({behavior:'smooth',block:'start'}); };
+    li.querySelector('[data-a=send]').onclick=function(){
+      var ta=li.querySelector('textarea'), t=ta.value.trim(); if(!t) return;
+      handlerSend(t);
+      li.querySelector('.replybox').classList.remove('show'); ta.value='';
+      if(!answered){ answered=true; unread=Math.max(0,unread-1); updateBadge(); }
+    };
+  }
+
+  // ---------- handler -> responder ----------
+  function handlerSend(text){
+    var li=tl('you',esc(text),{status:'Sent'});
+    msgCount++;
+    advance('looking');
+    var m={li:li,text:text};
+    var ep=epoch;
+    if(hasSignal()) setTimeout(function(){ if(ep===epoch) deliverToPhone(m); },500);
+    else toPhone.push(m);
+  }
+  function deliverToPhone(m){
+    setStatus(m.li,'Delivered');
+    function seen(){ setStatus(m.li,'Seen'); }
+    notify('test','Message from Kip',esc(m.text),[
+      {label:'Got it', onClick:function(){ seen(); tl('resp','Got it.',{chatty:true}); }},
+      {label:'My phone is fine', onClick:function(){ seen(); tl('resp','<b>Phone is fine:</b> '+TEXT.fine); }},
+      {label:'Call me', onClick:function(){ seen(); tl('resp','<b>Asked you to call them.</b>'); }},
+      {label:'Write back…', keep:true, onClick:function(){ seen(); openCompose('other'); }}
+    ]);
+  }
+
+  // ---------- handler actions ----------
+  $('btnCheck').onclick=function(){
+    var btn=$('btnCheck'); btn.disabled=true;
+    advance('looking');
+    tl('you','Ran a connection check.',{chatty:true});
+    result('wait','Test ping sent to Meteor Mite… waiting for delivery.');
+    var sig=hasSignal();
+    clearTimeout(testTimer);
+    testTimer=setTimeout(function(){
+      if(!sig){
+        failCount++;
+        tl('sys','Test ping <b>not delivered</b>. The phone couldn\'t be reached (signal or app).');
+        result('bad','<b>Not delivered.</b> The test ping never reached the phone, so this looks like signal or the app, not Meteor Mite ignoring pings. Undelivered pings no longer count against their ranking.'+(failCount>=2?' Two tests have failed: you can send this to support.':' Try again, or message them.'));
+        btn.disabled=false; btn.textContent='Run test again'; render();
+        return;
+      }
+      result('wait','<b>Delivered.</b> Waiting for Meteor Mite to open it…');
+      notify('test','Test ping from Kip','Kip is checking your phone is receiving pings. Tap to confirm.',[
+        {label:'Tap to open', done:'Opened ✓', onClick:function(){
+          tl('resp','Opened the test ping.',{chatty:true}); tested=true;
+          result('good','<b>Delivered and opened ✓.</b> The phone is fine. If they\'re still ranked low, request a fresh start.');
+          btn.disabled=false; btn.textContent='Run test again';
+        }}
+      ]);
+    },1400);
+  };
+  function result(kind,html){ var r=$('checkResult'); r.className='result show '+kind; r.innerHTML=html; }
+
+  $('btnFresh').onclick=function(){ $('freshConfirm').classList.add('show'); $('compose').classList.remove('show'); $('escConfirm').classList.remove('show'); };
+  $('freshNo').onclick=function(){ $('freshConfirm').classList.remove('show'); };
+  $('freshYes').onclick=function(){
+    $('freshConfirm').classList.remove('show');
+    advance('fixed');
+    $('btnFresh').disabled=true; $('btnFresh').textContent='Fresh start requested';
+    freshDone=true;
+    tl('you','Requested a fresh start. Ranking reset to neutral. <span class="keep">Routing-override audit log · kept permanently</span>',{audit:true});
+    notify('good keep','We\'re bringing you back','We\'re going to send you a few callouts to get you back in rotation. If your phone isn\'t getting them, tell Kip.');
+  };
+
+  $('btnMsg').onclick=function(){ $('compose').classList.add('show'); $('freshConfirm').classList.remove('show'); $('escConfirm').classList.remove('show'); };
+  $('msgCancel').onclick=function(){ $('compose').classList.remove('show'); };
+  $('msgSend').onclick=function(){
+    var t=$('msgText').value.trim(); if(!t) return;
+    $('compose').classList.remove('show');
+    handlerSend(t);
+  };
+
+  $('btnEsc').onclick=function(){ $('escConfirm').classList.add('show'); $('freshConfirm').classList.remove('show'); $('compose').classList.remove('show'); };
+  $('escNo').onclick=function(){ $('escConfirm').classList.remove('show'); };
+  $('escYes').onclick=function(){
+    $('escConfirm').classList.remove('show'); escalated=true; render();
+    tl('you','Sent to support with the last 6 pings, both failed connection tests and this conversation.');
+    notify('good keep','Support is looking at your phone','Kip asked Support to help with your phone. Someone will be in touch.');
+  };
+
+  // ---------- responder (phone) actions ----------
+  function openCompose(kind){ closeSheets(); $('pcompose').classList.add('show'); if(kind) pick(kind); }
+  function closeSheets(){ $('pcompose').classList.remove('show'); $('paway').classList.remove('show'); }
+  var sel=null;
+  function pick(r){ sel=r; document.querySelectorAll('#chips .chip').forEach(function(c){ c.classList.toggle('sel',c.getAttribute('data-r')===r); }); }
+  document.querySelectorAll('#chips .chip').forEach(function(c){ c.onclick=function(){ pick(c.getAttribute('data-r')); }; });
+  $('pContact').onclick=function(){ openCompose(); };
+  $('pCancel').onclick=closeSheets;
+  $('pSend').onclick=function(){
+    var note=$('pText').value.trim();
+    if(!sel && !note){ $('pText').placeholder='Pick a reason or write a note first'; return; }
+    sendToHandler(sel||'other',note);
+    $('pText').value=''; pick(null); closeSheets();
+  };
+
+  $('pAway').onclick=function(){
+    if(away){
+      tl('resp','Is back and available.'); away=null; render();
+      notify('good','Welcome back','You\'re available for pings again.');
+      return;
+    }
+    closeSheets(); $('paway').classList.add('show');
+  };
+  $('awayCancel').onclick=closeSheets;
+  document.querySelectorAll('#awayChips .chip').forEach(function(c){
+    c.onclick=function(){
+      away=c.getAttribute('data-u'); closeSheets(); render();
+      tl('resp','<b>Set away until '+esc(away)+'.</b> Quiet flag paused.');
+      notify('good','You\'re set as away','No pings until '+esc(away)+'. Kip can see this.');
+    };
+  });
+
+  $('pTest').onclick=function(){
+    var btn=$('pTest'); btn.disabled=true; btn.textContent='Testing…';
+    var sig=hasSignal();
+    setTimeout(function(){
+      btn.disabled=false; btn.textContent='Test my phone';
+      if(sig){
+        tl('resp','Ran a phone test: <b>passed</b>.',{chatty:true}); tested=true;
+        notify('good','Phone test passed ✓','Your phone is receiving pings.');
+      } else {
+        failCount++;
+        tl('sys','Meteor Mite ran a phone test: <b>failed</b>. The app couldn\'t reach Rook (no signal).');
+        notify('alert','Phone test failed','Your app can\'t reach Rook. Try moving to a spot with signal, or restart the app. Kip can see this result.');
+        render();
+      }
+    },1200);
+  };
+
+  // ---------- missed callout cards (one at a time) ----------
+  function showNextMissed(){
+    if(!missedQ.length) return;
+    var w=missedQ.shift(), ep=epoch;
+    function rec(key,txt){
+      if(ep!==epoch) return;
+      reports[key]++; updateSays();
+      tl('resp','<b>Missed callout</b> ('+esc(w)+'): '+txt);
+      setTimeout(function(){ if(ep===epoch) showNextMissed(); },700);
+    }
+    notify('alert','You missed a callout',esc(w)+'. What happened?',[
+      {label:'I saw it but didn\'t get to it in time', onClick:function(){ rec('saw','"I saw it but didn\'t get to it in time."'); }},
+      {label:'I never saw it', onClick:function(){ rec('notseen','"I never saw it."'); }},
+      {label:'I was unavailable', onClick:function(){ rec('unavail','"I was unavailable."'); }}
+    ]);
+  }
+
+  // ---------- signal toggle ----------
+  $('signal').onchange=function(){
+    var on=hasSignal();
+    $('sig').textContent=on?'Signal ●●●●':'Signal ○○○○';
+    $('nosig').classList.toggle('show',!on);
+    if(on){
+      if(fromPhone.length){
+        var q=fromPhone; fromPhone=[];
+        notify('good','Back online','Your queued message to Kip has been sent.');
+        q.forEach(function(m){ deliverToConsole(m,true); });
+      }
+      if(toPhone.length){
+        var h=toPhone; toPhone=[];
+        h.forEach(function(m,i){ setTimeout(function(){ deliverToPhone(m); },600+i*300); });
+      }
+    }
+  };
+
+  // ---------- demo: recovery closes the issue ----------
+  $('simBack').onclick=function(){
+    if(away) return;
+    dots=dots.slice(3).concat(['t','t','t']);
+    st='back'; $('mmWeek').textContent='11'; $('mmLast').textContent='just now';
+    $('pWeek').textContent='Pings this week: 11 (usual 12)';
+    tl('sys','Meteor Mite took 3 pings in a row. <b>Back to normal.</b> Flag closed.');
+    collapseThread();
+    notify('good keep','You\'re back to normal','You took your last 3 callouts. Thanks.');
+    render();
+  };
+  // When an issue resolves, fold the thread into one summary line and keep the rest as history
+  function collapseThread(){
+    var parts=[];
+    if(freshDone) parts.push('fresh start');
+    if(tested) parts.push('phone test passed');
+    if(failCount) parts.push(failCount+' failed test'+(failCount>1?'s':''));
+    if(msgCount) parts.push(msgCount+' message'+(msgCount>1?'s':''));
+    var rep=reports.saw+reports.notseen+reports.unavail;
+    if(rep) parts.push(rep+' missed ping'+(rep>1?'s':'')+' explained');
+    var tlEl=$('tl');
+    Array.prototype.forEach.call(tlEl.children,function(li){ li.classList.add('archived'); });
+    var s=document.createElement('li'); s.className='summary';
+    s.innerHTML='<span class="tag sys">Resolved</span><b>Back to normal.</b> '+(parts.length?parts.join(', ')+'. ':'')+
+      '<span style="color:var(--mute)">Moves to history; hides from this card after 7 days (length to be set).</span> '+
+      '<button class="link" id="histBtn">View history</button>'+
+      '<label id="histOpt" style="display:none;font-size:12px;margin-left:10px"><input type="checkbox" id="histChat" checked> Hide test pings and acknowledgements</label>';
+    tlEl.insertBefore(s,tlEl.firstChild);
+    tlEl.classList.add('nochat');
+    $('histBtn').onclick=function(){
+      var open=tlEl.classList.toggle('hist');
+      $('histBtn').textContent=open?'Hide history':'View history';
+      $('histOpt').style.display=open?'inline':'none';
+    };
+    $('histChat').onchange=function(){ tlEl.classList.toggle('nochat',$('histChat').checked); };
+  }
+  // Reset in place (no page reload, which some viewers block)
+  function resetDemo(){
+    epoch++; clearTimeout(testTimer);
+    st='open'; away=null; failCount=0; escalated=false; unread=0;
+    dots=['t','n','d','s','n','s']; reports={saw:0,notseen:0,unavail:0};
+    toPhone=[]; fromPhone=[]; tested=false; freshDone=false; msgCount=0;
+    missedQ=['Flight callout · Eastgate · 22 min ago','Cold-weather callout · Eastgate · yesterday'];
+    $('tl').innerHTML=''; $('tl').className='';
+    $('feed').innerHTML='';
+    $('checkResult').className='result'; $('checkResult').innerHTML='';
+    ['freshConfirm','compose','escConfirm'].forEach(function(id){ $(id).classList.remove('show'); });
+    closeSheets(); pick(null); $('pText').value=''; $('pText').placeholder='Add a note';
+    $('msgText').value='Hey, you\'ve been quiet lately. Is your phone OK? Let me know and I can run a test.';
+    $('btnCheck').disabled=false; $('btnCheck').textContent='Check connection';
+    $('btnFresh').disabled=false; $('btnFresh').textContent='Request a fresh start';
+    $('pTest').disabled=false; $('pTest').textContent='Test my phone';
+    $('mmWeek').textContent='2'; $('mmLast').textContent='11 days ago';
+    $('pWeek').textContent='Pings this week: 2 (usual 12)';
+    $('signal').checked=true; $('sig').textContent='Signal ●●●●'; $('nosig').classList.remove('show');
+    updateBadge(); start();
+  }
+  $('reset').onclick=resetDemo;
+
+  // ---------- start ----------
+  function start(){
+    tl('sys','Quiet flag raised: 4 of the last 6 pings got no answer.');
+    notify('alert','We\'ve noticed you\'ve been missing pings','You\'ve had fewer callouts lately. Is your phone getting them? Tell Kip so you can sort it out together.',[
+      {label:'My phone\'s fine, I was away', onClick:function(){ sendToHandler('fine',''); }},
+      {label:'I think my phone has a problem', onClick:function(){ sendToHandler('trouble',''); }},
+      {label:'Write to Kip…', keep:true, onClick:function(){ openCompose('other'); }}
+    ]);
+    showNextMissed();
+    updateSays();
+    render();
+  }
+  start();
+})();
+</script>
+</body>
+</html>
