@@ -111,22 +111,37 @@ footer{background:var(--navy);color:#94a3b8;padding:24px;text-align:center;font-
 <body>
 <nav id="nav">
   <b>ROOK DISPATCH · 4.2</b>
-  <a href="#top">Summary</a><a href="#what">What happened</a><a href="#m1">1 Origin</a><a href="#m2">2 Hearing</a><a href="#m3">3 Rewind</a><a href="#m4">4 X-ray</a><a href="#m5">5 Speed</a><a href="#proto">Prototype</a><a href="#m6">6 Sidekicks</a><a href="#prevent">Prevention</a><a href="#next">Next steps</a>
+  <a href="#title">Title</a><a href="#top">Summary</a><a href="#what">What happened</a><a href="#m1">1 Origin</a><a href="#m2">2 Hearing</a><a href="#m3">3 Rewind</a><a href="#m4">4 X-ray</a><a href="#m5">5 Speed</a><a href="#proto">Prototype</a><a href="#m6">6 Sidekicks</a><a href="#prevent">Prevention</a><a href="#next">Next steps</a>
 </nav>
 
-<!-- ============ TITLE ============ -->
+<!-- ============ TITLE SLIDE ============ -->
+<section id="title" class="dark" style="display:flex;align-items:center;text-align:center;background:linear-gradient(160deg,#0b1830,#1e3a5f)">
+<div class="in">
+  <div class="kicker">Claude Code for PMs · Product School · Final project · cohort ccpm-2026.1</div>
+  <h1 style="font-size:58px">Rook Dispatch 4.2:<br>what went wrong, and how we fix it</h1>
+  <p style="font-size:24px;margin:18px 0 4px;font-weight:600">Stacey Lavelle</p>
+  <p class="note" style="font-size:15px;margin:0 0 34px">Product Manager, Rook Dispatch</p>
+  <div class="card" style="max-width:760px;margin:0 auto;text-align:left">
+    <p style="margin:0 0 8px"><b>Rook Industries</b> makes software for superheroes and the handlers who coordinate them. <b>Rook Dispatch</b> decides who gets pinged about an emergency callout, and whether they answer.</p>
+    <p style="margin:0">Release 4.2 shipped on 12 August and responders stopped answering. This report covers what I found, the fix I prototyped, and the checklist that keeps it from happening again.</p>
+  </div>
+  <p class="note" style="margin-top:22px">Fictional teaching scenario. Rook Industries is not a real company.</p>
+</div>
+</section>
+
+<!-- ============ SUMMARY ============ -->
 <section id="top" class="dark" style="display:flex;align-items:center">
 <div class="in">
-  <div class="kicker">Claude Code for PMs · Final report · cohort ccpm-2026.1</div>
+  <div class="kicker">Executive summary</div>
   <h1>Four responders went quiet.<br>Release 4.2 is why, and nobody could see it.</h1>
-  <p class="lead">What happened after Rook Dispatch 4.2 shipped on 12 August, the evidence I found with Claude Code, the fix I prototyped, and the checklist skill that keeps a brief like this from shipping unexamined again.</p>
+  <p class="lead">A shorter ping timer made more pings expire unanswered. The scoring rule then counted each expiry as a refusal, so four responders sank to the bottom of the ranking and stopped getting work. The numbers below show the scale. The rest of the report gives the evidence, the prototype fix and the checklist that guards against a repeat.</p>
   <div class="grid g4" style="margin-top:30px" id="hero">
     <div class="card reveal"><div class="stat red">2.3% → 18%</div><div class="stat"><small>of pings missed, before vs after 12 Aug</small></div></div>
     <div class="card reveal"><div class="stat amber">3×</div><div class="stat"><small>callout tickets (5–8 a week → 20–32)</small></div></div>
     <div class="card reveal"><div class="stat red">4 of 15</div><div class="stat"><small>responders starved of work (about 12 pings a week → 1–6)</small></div></div>
     <div class="card reveal"><div class="stat green">0.56 vs 0</div><div class="stat"><small>Vesper's end score with a lighter miss penalty vs today's (replay)</small></div></div>
   </div>
-  <p class="note" style="margin-top:26px">Fictional teaching scenario. Rook Industries is not a real company. Responders appear by handle only; no cover identity is stored or inferred (Security Policy 4.1 rule).</p>
+  <p class="note" style="margin-top:26px">Responders appear by handle only; no cover identity is stored or inferred (Security Policy 4.1 rule).</p>
 </div>
 </section>
 
@@ -1179,6 +1194,15 @@ Turn that into a skill called review-checklist, so I can point it at any brief a
 // reveal-on-scroll, animates bars and columns
 var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('show')}})},{threshold:.15});
 document.querySelectorAll('.reveal,.card,section').forEach(function(el){io.observe(el)});
+// nav pills: scroll in script so they work even where #anchor links are blocked
+document.querySelectorAll('nav a').forEach(function(a){
+  a.addEventListener('click',function(e){
+    var t=document.getElementById(a.getAttribute('href').slice(1));
+    if(!t)return;
+    e.preventDefault();
+    window.scrollTo({top:t.getBoundingClientRect().top+window.pageYOffset,behavior:'smooth'});
+  });
+});
 // nav highlight
 var links=[].slice.call(document.querySelectorAll('nav a'));
 var so=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){links.forEach(function(a){a.classList.toggle('on',a.getAttribute('href')==='#'+e.target.id)})}})},{threshold:.4});
